@@ -90,6 +90,7 @@ const KPICard = ({ title, value, trend, icon: Icon, color = 'blue', subtitle, lo
     </div>
   );
 };
+
 // ==========================================
 // 👥 USER ANALYTICS - RESPONSIVE
 // ==========================================
@@ -124,17 +125,14 @@ const UserAnalytics = ({ data, loading }) => {
   const trafficSources = data.trafficSources || [];
   const overview = data.overview || {};
 
-  // Calculate device percentages
   const totalDeviceSessions = devices.reduce((sum, d) => sum + (d.sessions || 0), 0);
   const deviceData = devices.map(d => ({
     ...d,
     percentage: totalDeviceSessions > 0 ? ((d.sessions / totalDeviceSessions) * 100).toFixed(1) : 0
   }));
 
-  // Top countries
   const topCountries = geographic.slice(0, 10);
 
-  // Device icons
   const deviceIcons = {
     mobile: '📱',
     desktop: '💻',
@@ -143,7 +141,6 @@ const UserAnalytics = ({ data, loading }) => {
 
   return (
     <div className="space-y-6">
-      {/* Device Breakdown */}
       <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
         <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
           <span className="text-2xl">📱</span>
@@ -169,7 +166,6 @@ const UserAnalytics = ({ data, loading }) => {
           ))}
         </div>
 
-        {/* Visual device distribution */}
         <div className="w-full bg-gray-200 rounded-full h-8 overflow-hidden flex">
           {deviceData.map((device, index) => (
             <div
@@ -187,7 +183,6 @@ const UserAnalytics = ({ data, loading }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Geographic Data */}
         <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
           <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
             <span className="text-2xl">🌍</span>
@@ -219,7 +214,6 @@ const UserAnalytics = ({ data, loading }) => {
           </div>
         </div>
 
-        {/* Traffic Sources */}
         <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
           <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
             <span className="text-2xl">🚀</span>
@@ -247,7 +241,6 @@ const UserAnalytics = ({ data, loading }) => {
         </div>
       </div>
 
-      {/* Session Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 text-white">
           <div className="text-sm opacity-90 mb-1">Avg Session</div>
@@ -266,6 +259,284 @@ const UserAnalytics = ({ data, loading }) => {
           <div className="text-2xl font-bold">{formatNumber(overview.newUsers || 0)}</div>
         </div>
       </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 🏨 ROOM PERFORMANCE - RESPONSIVE
+// ==========================================
+
+const RoomPerformance = ({ data, loading }) => {
+  const [sortBy, setSortBy] = useState('views');
+  
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 w-48 bg-gray-200 rounded"></div>
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-16 bg-gray-100 rounded"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const rooms = data?.rooms || [];
+  
+  const enrichedRooms = rooms.map(room => {
+    const views = room.views || 0;
+    const avgDuration = room.avgDuration || 0;
+    const bounceRate = room.bounceRate || 0;
+    const whatsappClicks = 0;
+    const conversionRate = views > 0 ? (whatsappClicks / views) * 100 : 0;
+    const avgTimeMinutes = Math.round(avgDuration / 60);
+    
+    return {
+      ...room,
+      conversionRate: isNaN(conversionRate) ? 0 : conversionRate,
+      avgTimeMinutes: isNaN(avgTimeMinutes) ? 0 : avgTimeMinutes,
+      whatsappClicks
+    };
+  });
+
+  const sortedRooms = [...enrichedRooms].sort((a, b) => {
+    switch(sortBy) {
+      case 'views': return b.views - a.views;
+      case 'conversion': return b.conversionRate - a.conversionRate;
+      default: return 0;
+    }
+  });
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h3 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
+          <Home className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
+          Room Performance
+        </h3>
+        
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-xs md:text-sm w-full sm:w-auto"
+        >
+          <option value="views">Sort by Views</option>
+          <option value="conversion">Sort by Conversion</option>
+        </select>
+      </div>
+
+      <div className="overflow-x-auto -mx-4 md:mx-0">
+        <div className="inline-block min-w-full align-middle">
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-2 md:px-4 text-xs font-semibold text-gray-600 uppercase">Room</th>
+                <th className="text-center py-3 px-2 md:px-4 text-xs font-semibold text-gray-600 uppercase">Views</th>
+                <th className="text-center py-3 px-2 md:px-4 text-xs font-semibold text-gray-600 uppercase hidden sm:table-cell">Time</th>
+                <th className="text-center py-3 px-2 md:px-4 text-xs font-semibold text-gray-600 uppercase">Bounce</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedRooms.map((room, index) => (
+                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <td className="py-3 px-2 md:px-4">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-8 rounded ${index === 0 ? 'bg-yellow-500' : index === 1 ? 'bg-gray-400' : index === 2 ? 'bg-amber-600' : 'bg-gray-300'}`}></div>
+                      <span className="text-xs md:text-sm font-medium text-gray-900 truncate max-w-[120px] md:max-w-none">{room.roomSlug || room.path}</span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-2 md:px-4 text-center">
+                    <span className="text-xs md:text-sm font-bold text-blue-600">{formatNumber(room.views)}</span>
+                  </td>
+                  <td className="py-3 px-2 md:px-4 text-center hidden sm:table-cell">
+                    <span className="text-xs md:text-sm text-gray-700">{room.avgTimeMinutes}m</span>
+                  </td>
+                  <td className="py-3 px-2 md:px-4 text-center">
+                    <span className={`text-xs md:text-sm font-medium ${
+                      room.bounceRate > 70 ? 'text-red-600' : 
+                      room.bounceRate > 50 ? 'text-yellow-600' : 
+                      'text-green-600'
+                    }`}>
+                      {room.bounceRate.toFixed(0)}%
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4 pt-6 border-t">
+        <div className="text-center">
+          <div className="text-xl md:text-2xl font-bold text-gray-900">
+            {formatNumber(enrichedRooms.reduce((sum, r) => sum + r.views, 0))}
+          </div>
+          <div className="text-xs text-gray-600">Total Views</div>
+        </div>
+        <div className="text-center">
+          <div className="text-xl md:text-2xl font-bold text-purple-600">
+            {enrichedRooms.length}
+          </div>
+          <div className="text-xs text-gray-600">Rooms Tracked</div>
+        </div>
+        <div className="text-center col-span-2 md:col-span-1">
+          <div className="text-xl md:text-2xl font-bold text-green-600">
+            {(enrichedRooms.reduce((sum, r) => sum + (r.bounceRate || 0), 0) / enrichedRooms.length).toFixed(1)}%
+          </div>
+          <div className="text-xs text-gray-600">Avg Bounce</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 📰 CONTENT PERFORMANCE - RESPONSIVE
+// ==========================================
+
+const ContentPerformance = ({ data, loading }) => {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 w-48 bg-gray-200 rounded"></div>
+          <div className="h-64 md:h-96 bg-gray-100 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data || (!data.blog && !data.museum)) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+        <div className="text-center py-12 text-gray-500">
+          No content data available
+        </div>
+      </div>
+    );
+  }
+
+  const blogData = data.blog || {};
+  const museumData = data.museum || {};
+
+  return (
+    <div className="space-y-6">
+      {/* Blog Section */}
+      {blogData.posts && blogData.posts.length > 0 && (
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
+              <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
+              Blog Performance
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <div className="text-center p-3 md:p-4 bg-blue-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-blue-600">
+                {formatNumber(blogData.overview?.totalViews)}
+              </div>
+              <div className="text-xs text-gray-600">Total Views</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-purple-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-purple-600">
+                {formatNumber(blogData.overview?.totalReaders)}
+              </div>
+              <div className="text-xs text-gray-600">Readers</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-green-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-green-600">
+                {blogData.overview?.avgEngagement || 0}%
+              </div>
+              <div className="text-xs text-gray-600">Engagement</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-orange-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-orange-600">
+                {blogData.overview?.totalArticles || 0}
+              </div>
+              <div className="text-xs text-gray-600">Articles</div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-bold text-sm md:text-base text-gray-900">Top Posts</h4>
+            {blogData.topPerformers?.slice(0, 5).map((post, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                  <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-xs md:text-sm flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs md:text-sm font-medium text-gray-900 truncate">{post.title}</div>
+                    <div className="text-xs text-gray-500">{formatNumber(post.views)} views</div>
+                  </div>
+                </div>
+                <span className="text-xs md:text-sm text-green-600 font-semibold flex-shrink-0">{post.engagementRate}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Museum Section */}
+      {museumData.artworks && museumData.artworks.length > 0 && (
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Building2 className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
+              Museum Performance
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <div className="text-center p-3 md:p-4 bg-purple-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-purple-600">
+                {formatNumber(museumData.overview?.totalViews)}
+              </div>
+              <div className="text-xs text-gray-600">Total Views</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-blue-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-blue-600">
+                {formatNumber(museumData.overview?.totalVisitors)}
+              </div>
+              <div className="text-xs text-gray-600">Visitors</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-pink-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-pink-600">
+                {formatNumber(museumData.overview?.mediaInteractions)}
+              </div>
+              <div className="text-xs text-gray-600">Media</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-green-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-green-600">
+                {museumData.overview?.avgEngagement || 0}%
+              </div>
+              <div className="text-xs text-gray-600">Engagement</div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-bold text-sm md:text-base text-gray-900">Most Viewed Artworks</h4>
+            {museumData.topArtworks?.slice(0, 5).map((artwork, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                  <div className="w-6 h-6 md:w-8 md:h-8 bg-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xs md:text-sm flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs md:text-sm font-medium text-gray-900 truncate">{artwork.title}</div>
+                    <div className="text-xs text-gray-500">{formatNumber(artwork.views)} views</div>
+                  </div>
+                </div>
+                <span className="text-xs md:text-sm text-green-600 font-semibold flex-shrink-0">{artwork.engagementRate}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
