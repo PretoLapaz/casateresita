@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   TrendingUp, Users, Eye, Home, BookOpen, Building2, 
   MessageCircle, Filter, RefreshCw, Award, Sparkles, 
-  ChevronDown, ArrowUp, ArrowDown, AlertCircle
+  ChevronDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
@@ -92,24 +92,6 @@ const KPICard = ({ title, value, trend, icon: Icon, color = 'blue', subtitle, lo
 };
 
 // ==========================================
-// 🚨 ERROR STATE
-// ==========================================
-
-const ErrorState = ({ message, onRetry }) => (
-  <div className="bg-red-50 border-2 border-red-200 rounded-xl p-8 text-center">
-    <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-    <h3 className="text-xl font-bold text-red-900 mb-2">Unable to Load Data</h3>
-    <p className="text-red-700 mb-6">{message}</p>
-    <button
-      onClick={onRetry}
-      className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold"
-    >
-      Retry
-    </button>
-  </div>
-);
-
-// ==========================================
 // 🔀 USER FLOW DIAGRAM - RESPONSIVE
 // ==========================================
 
@@ -159,15 +141,15 @@ const UserFlowDiagram = ({ data, loading }) => {
           <span className="text-base md:text-xl">User Journey Flow</span>
         </h3>
         <div className="text-xs md:text-sm text-gray-600">
-          Conversion: {totalVisits > 0 ? ((whatsappClicks / totalVisits) * 100).toFixed(1) : '0'}%
+          Conversion: {((whatsappClicks / totalVisits) * 100).toFixed(1)}%
         </div>
       </div>
 
       <div className="space-y-4 md:space-y-6 mb-6 md:mb-8">
         {funnelData.map((step, index) => {
-          const percentage = maxValue > 0 ? (step.value / maxValue) * 100 : 0;
+          const percentage = (step.value / maxValue) * 100;
           const nextStep = funnelData[index + 1];
-          const dropoff = nextStep && step.value > 0 ? ((step.value - nextStep.value) / step.value) * 100 : 0;
+          const dropoff = nextStep ? ((step.value - nextStep.value) / step.value) * 100 : 0;
 
           return (
             <div key={index}>
@@ -247,33 +229,28 @@ const RoomPerformance = ({ data, loading }) => {
 
   const rooms = data?.rooms || [];
   
-  if (rooms.length === 0) {
-    return (
-      <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
-        <div className="text-center py-12 text-gray-500">
-          No room data available
-        </div>
-      </div>
-    );
-  }
-
   const enrichedRooms = rooms.map(room => {
     const views = room.views || 0;
     const avgDuration = room.avgDuration || 0;
     const bounceRate = room.bounceRate || 0;
+    const whatsappClicks = 0;
+    const conversionRate = views > 0 ? (whatsappClicks / views) * 100 : 0;
     const avgTimeMinutes = Math.round(avgDuration / 60);
     
     return {
       ...room,
+      conversionRate: isNaN(conversionRate) ? 0 : conversionRate,
       avgTimeMinutes: isNaN(avgTimeMinutes) ? 0 : avgTimeMinutes,
-      views,
-      bounceRate
+      whatsappClicks
     };
   });
 
   const sortedRooms = [...enrichedRooms].sort((a, b) => {
-    if (sortBy === 'views') return b.views - a.views;
-    return 0;
+    switch(sortBy) {
+      case 'views': return b.views - a.views;
+      case 'conversion': return b.conversionRate - a.conversionRate;
+      default: return 0;
+    }
   });
 
   return (
@@ -290,6 +267,7 @@ const RoomPerformance = ({ data, loading }) => {
           className="px-3 py-2 border border-gray-300 rounded-lg text-xs md:text-sm w-full sm:w-auto"
         >
           <option value="views">Sort by Views</option>
+          <option value="conversion">Sort by Conversion</option>
         </select>
       </div>
 
@@ -350,11 +328,163 @@ const RoomPerformance = ({ data, loading }) => {
         </div>
         <div className="text-center col-span-2 md:col-span-1">
           <div className="text-xl md:text-2xl font-bold text-green-600">
-            {enrichedRooms.length > 0 ? (enrichedRooms.reduce((sum, r) => sum + (r.bounceRate || 0), 0) / enrichedRooms.length).toFixed(1) : '0'}%
+            {(enrichedRooms.reduce((sum, r) => sum + (r.bounceRate || 0), 0) / enrichedRooms.length).toFixed(1)}%
           </div>
           <div className="text-xs text-gray-600">Avg Bounce</div>
         </div>
       </div>
+    </div>
+  );
+};
+
+// ==========================================
+// 📰 CONTENT PERFORMANCE - RESPONSIVE
+// ==========================================
+
+const ContentPerformance = ({ data, loading }) => {
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-6 w-48 bg-gray-200 rounded"></div>
+          <div className="h-64 md:h-96 bg-gray-100 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data || (!data.blog && !data.museum)) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+        <div className="text-center py-12 text-gray-500">
+          No content data available
+        </div>
+      </div>
+    );
+  }
+
+  const blogData = data.blog || {};
+  const museumData = data.museum || {};
+
+  return (
+    <div className="space-y-6">
+      {/* Blog Section */}
+      {blogData.posts && blogData.posts.length > 0 && (
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
+              <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
+              Blog Performance
+            </h3>
+          </div>
+
+          {/* Overview Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <div className="text-center p-3 md:p-4 bg-blue-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-blue-600">
+                {formatNumber(blogData.overview?.totalViews)}
+              </div>
+              <div className="text-xs text-gray-600">Total Views</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-purple-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-purple-600">
+                {formatNumber(blogData.overview?.totalReaders)}
+              </div>
+              <div className="text-xs text-gray-600">Readers</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-green-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-green-600">
+                {blogData.overview?.avgEngagement || 0}%
+              </div>
+              <div className="text-xs text-gray-600">Engagement</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-orange-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-orange-600">
+                {blogData.overview?.totalArticles || 0}
+              </div>
+              <div className="text-xs text-gray-600">Articles</div>
+            </div>
+          </div>
+
+          {/* Top Posts */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-sm md:text-base text-gray-900">Top Posts</h4>
+            {blogData.topPerformers?.slice(0, 5).map((post, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                  <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-xs md:text-sm flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs md:text-sm font-medium text-gray-900 truncate">{post.title}</div>
+                    <div className="text-xs text-gray-500">{formatNumber(post.views)} views</div>
+                  </div>
+                </div>
+                <span className="text-xs md:text-sm text-green-600 font-semibold flex-shrink-0">{post.engagementRate}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Museum Section */}
+      {museumData.artworks && museumData.artworks.length > 0 && (
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 flex items-center gap-2">
+              <Building2 className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
+              Museum Performance
+            </h3>
+          </div>
+
+          {/* Overview Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+            <div className="text-center p-3 md:p-4 bg-purple-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-purple-600">
+                {formatNumber(museumData.overview?.totalViews)}
+              </div>
+              <div className="text-xs text-gray-600">Total Views</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-blue-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-blue-600">
+                {formatNumber(museumData.overview?.totalVisitors)}
+              </div>
+              <div className="text-xs text-gray-600">Visitors</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-pink-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-pink-600">
+                {formatNumber(museumData.overview?.mediaInteractions)}
+              </div>
+              <div className="text-xs text-gray-600">Media</div>
+            </div>
+            <div className="text-center p-3 md:p-4 bg-green-50 rounded-lg">
+              <div className="text-xl md:text-2xl font-bold text-green-600">
+                {museumData.overview?.avgEngagement || 0}%
+              </div>
+              <div className="text-xs text-gray-600">Engagement</div>
+            </div>
+          </div>
+
+          {/* Top Artworks */}
+          <div className="space-y-3">
+            <h4 className="font-bold text-sm md:text-base text-gray-900">Most Viewed Artworks</h4>
+            {museumData.topArtworks?.slice(0, 5).map((artwork, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
+                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                  <div className="w-6 h-6 md:w-8 md:h-8 bg-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-xs md:text-sm flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs md:text-sm font-medium text-gray-900 truncate">{artwork.title}</div>
+                    <div className="text-xs text-gray-500">{formatNumber(artwork.views)} views</div>
+                  </div>
+                </div>
+                <span className="text-xs md:text-sm text-green-600 font-semibold flex-shrink-0">{artwork.engagementRate}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -365,64 +495,69 @@ const RoomPerformance = ({ data, loading }) => {
 
 const CompleteDashboard = () => {
   const [data, setData] = useState(null);
+  const [contentData, setContentData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [contentLoading, setContentLoading] = useState(false);
   const [dateRange, setDateRange] = useState('last7Days');
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     fetchData();
-  }, [dateRange]);
+    if (activeTab === 'content') {
+      fetchContentData();
+    }
+  }, [dateRange, activeTab]);
 
   const fetchData = async () => {
     setLoading(true);
-    setError(null);
-    
     try {
-      console.log('🔄 Fetching GA4 data...');
-      
       const response = await fetch('/.netlify/functions/fetchGA4AnalyticsEnhanced', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dateRange, useCache: false })
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
+      if (response.ok) {
+        const result = await response.json();
+        console.log('📊 Analytics data received:', result);
+        setData(result);
+      } else {
+        console.error('Failed to fetch analytics:', await response.text());
       }
-
-      const result = await response.json();
-      
-      console.log('✅ GA4 data received:', result);
-      
-      // Vérifier que les données sont valides
-      if (!result || !result.overview) {
-        throw new Error('Invalid data structure received from API');
-      }
-      
-      setData(result);
     } catch (error) {
-      console.error('❌ Error fetching data:', error);
-      setError(error.message);
+      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRefresh = () => {
-    fetchData();
+  const fetchContentData = async () => {
+    setContentLoading(true);
+    try {
+      const response = await fetch('/.netlify/functions/fetchContentPerformance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dateRange, useCache: false })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('📰 Content data received:', result);
+        setContentData(result);
+      } else {
+        console.error('Failed to fetch content data:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error fetching content data:', error);
+    } finally {
+      setContentLoading(false);
+    }
   };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 pb-8 px-3 sm:px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <ErrorState message={error} onRetry={handleRefresh} />
-        </div>
-      </div>
-    );
-  }
+  const handleRefresh = () => {
+    fetchData();
+    if (activeTab === 'content') fetchContentData();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 md:pt-24 pb-8 px-3 sm:px-4 md:px-8">
@@ -431,14 +566,7 @@ const CompleteDashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-4xl font-bold text-gray-900">Analytics Dashboard</h1>
-            <p className="text-sm md:text-base text-gray-600 mt-1 md:mt-2">
-              La Casa de Teresita
-              {data?.metadata && (
-                <span className="ml-2 text-xs text-gray-500">
-                  • {data.metadata.startDate} to {data.metadata.endDate}
-                </span>
-              )}
-            </p>
+            <p className="text-sm md:text-base text-gray-600 mt-1 md:mt-2">La Casa de Teresita</p>
           </div>
           
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -454,10 +582,9 @@ const CompleteDashboard = () => {
             
             <button
               onClick={handleRefresh}
-              disabled={loading}
-              className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs md:text-sm font-medium w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs md:text-sm font-medium w-full sm:w-auto"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="h-4 w-4" />
               <span>Refresh</span>
             </button>
           </div>
@@ -500,7 +627,7 @@ const CompleteDashboard = () => {
 
         {/* Tabs */}
         <div className="flex gap-2 border-b border-gray-200 overflow-x-auto">
-          {['overview', 'rooms'].map((tab) => (
+          {['overview', 'rooms', 'content'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -526,6 +653,10 @@ const CompleteDashboard = () => {
           <div className="space-y-6">
             <RoomPerformance data={data} loading={loading} />
           </div>
+        )}
+
+        {activeTab === 'content' && (
+          <ContentPerformance data={contentData} loading={contentLoading} />
         )}
       </div>
     </div>
