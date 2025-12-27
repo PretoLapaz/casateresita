@@ -95,7 +95,7 @@ const KPICard = ({ title, value, trend, icon: Icon, color = 'blue', subtitle, lo
 // 🔀 USER FLOW DIAGRAM - RESPONSIVE
 // ==========================================
 
-const UserFlowDiagram = ({ data, loading }) => {
+const UserFlowDiagram = ({ overview, conversions, loading }) => {
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
@@ -107,7 +107,7 @@ const UserFlowDiagram = ({ data, loading }) => {
     );
   }
 
-  if (!data) {
+  if (!overview || !conversions) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
         <div className="text-center py-12 text-gray-500">
@@ -117,11 +117,11 @@ const UserFlowDiagram = ({ data, loading }) => {
     );
   }
 
-  const totalVisits = data.totalVisits || 0;
-  const roomViews = data.conversions?.roomViews || 0;
-  const dateSelections = data.conversions?.dateSelections || 0;
-  const priceChecks = data.conversions?.priceChecks || 0;
-  const whatsappClicks = data.conversions?.whatsappClicks || 0;
+  const totalVisits = overview.totalVisits || 0;
+  const roomViews = conversions.roomViews || 0;
+  const dateSelections = conversions.dateSelections || 0;
+  const priceChecks = conversions.priceChecks || 0;
+  const whatsappClicks = conversions.whatsappClicks || 0;
 
   const funnelData = [
     { name: 'Visits', value: totalVisits, fill: COLORS.blue },
@@ -645,10 +645,9 @@ const CompleteDashboard = () => {
         {/* Content based on active tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <UserFlowDiagram data={data} loading={loading} />
+            <UserFlowDiagram data={data?.overview} loading={loading} />
           </div>
         )}
-
         {activeTab === 'rooms' && (
           <div className="space-y-6">
             <RoomPerformance data={data} loading={loading} />
