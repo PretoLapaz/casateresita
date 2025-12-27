@@ -1,4 +1,4 @@
-// netlify/functions/fetchGA4AnalyticsEnhanced.js - VERSION PROFESSIONNELLE
+// netlify/functions/fetchGA4AnalyticsEnhanced.js - FIXED VERSION
 const { BetaAnalyticsDataClient } = require('@google-analytics/data');
 
 const PROPERTY_ID = process.env.GA4_PROPERTY_ID;
@@ -507,6 +507,9 @@ exports.handler = async (event) => {
       fetchRoomPerformance(analyticsDataClient, startDateStr, endDateStr)
     ]);
 
+    // ✅ FIX: Ajouter totalVisits dans conversions pour UserFlowDiagram
+    conversions.totalVisits = overview.totalVisits;
+
     // Calculate conversion rate
     const conversionRate = overview.totalVisits > 0 
       ? ((conversions.whatsappClicks / overview.totalVisits) * 100).toFixed(2)
@@ -521,7 +524,7 @@ exports.handler = async (event) => {
       topPages,
       devices,
       trafficSources,
-      conversions,
+      conversions,  // ← Maintenant avec totalVisits inclus
       geographic,
       content: {
         blog,
@@ -544,6 +547,9 @@ exports.handler = async (event) => {
     console.log(`📊 Total visits: ${overview.totalVisits}`);
     console.log(`👥 Unique visitors: ${overview.uniqueVisitors}`);
     console.log(`💰 Conversion rate: ${conversionRate}%`);
+    console.log(`🏨 Room views: ${conversions.roomViews}`);
+    console.log(`📅 Date selections: ${conversions.dateSelections}`);
+    console.log(`💬 WhatsApp clicks: ${conversions.whatsappClicks}`);
 
     return {
       statusCode: 200,
