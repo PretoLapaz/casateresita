@@ -645,7 +645,7 @@ const CompleteDashboard = () => {
         {/* Content based on active tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <UserFlowDiagram data={data?.overview} loading={loading} />
+            <UserFlowDiagram data={data} loading={loading} />
           </div>
         )}
 
